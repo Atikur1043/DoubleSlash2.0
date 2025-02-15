@@ -11,10 +11,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
-import { auth, provider } from "@/firebase";
-import { createUserWithEmailAndPassword, signInWithPopup } from "firebase/auth";
+import { auth, db } from "@/firebase";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { addDoc, collection } from "firebase/firestore";
 
 export function SignUpForm({
   className,
@@ -22,6 +23,7 @@ export function SignUpForm({
 }: React.ComponentPropsWithoutRef<"div">) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState<string>("student");
 
   const router = useRouter();
 
@@ -33,6 +35,25 @@ export function SignUpForm({
         email,
         password
       );
+
+      if (role == "student") {
+        const docRef = await addDoc(collection(db, "students"), {
+          email: email,
+          name: email.split("@")[0],
+          teachers: [],
+        });
+
+        console.log(docRef);
+      } else {
+        const docRef = await addDoc(collection(db, "teachers"), {
+          email: email,
+          name: email.split("@")[0],
+          students: [],
+          qset_id: [],
+        });
+
+        console.log(docRef);
+      }
 
       router.push("/login");
       console.log(userCredential);
@@ -74,12 +95,25 @@ export function SignUpForm({
                   required
                 />
               </div>
+              <div className="grid gap-2">
+                <Label htmlFor="role">Login as</Label>
+                <select
+                  id="role"
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  className="p-2 border rounded"
+                  required
+                >
+                  <option value="student">Student</option>
+                  <option value="teacher">Teacher</option>
+                </select>
+              </div>
               <Button type="submit" className="w-full">
                 Sign Up
               </Button>
             </div>
             <div className="mt-4 text-center text-sm">
-              Have have an account?{" "}
+              Have an account?{" "}
               <Link href="/login" className="underline underline-offset-4">
                 Login
               </Link>

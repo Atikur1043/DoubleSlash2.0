@@ -65,9 +65,11 @@ export function LoginForm({
         const user = await findUserInCollections(email, role);
 
         if (user) {
-          router.push(`/${role}/${user.id}`);
-        } else {
-          setError("User not found");
+          if (role == "student") {
+            router.push(`/student/dashboard/${user.id}`);
+          } else {
+            router.push(`/teacher/${user.id}`);
+          }
         }
       }
     } catch (err: any) {
