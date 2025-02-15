@@ -11,38 +11,71 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
-import { auth, provider } from "@/firebase";
-import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
+import { auth } from "@/firebase"; // Removed unused provider and signInWithPopup
+import { signInWithEmailAndPassword } from "firebase/auth";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { db } from "@/firebase";
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [role, setRole] = useState<string>("student");
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const findUserInCollections = async (email: string, role: string) => {
+    const collection_name = role === "student" ? "students" : "teachers";
+
+    try {
+      const Ref = collection(db, collection_name);
+
+      const Query = getDocs(query(Ref, where("email", "==", email)));
+
+      const Snapshot = await Query;
+
+      if (!Snapshot.empty) {
+        const Doc = Snapshot.docs[0];
+        return { id: Doc.id, role: role, ...Doc.data() };
+      }
+
+      return null;
+    } catch (err) {
+      console.error("Error fetching user:", err);
+      return null;
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError(null);
+
     try {
       const userCredential = await signInWithEmailAndPassword(
         auth,
         email,
         password
       );
-      router.push("/");
-      console.log(userCredential);
-    } catch (error) {
-      alert("Invalid email or password");
-      console.error(error);
+
+      if (userCredential.user) {
+        const user = await findUserInCollections(email, role);
+
+        if (user) {
+          router.push(`/${role}/${user.id}`);
+        } else {
+          setError("User not found");
+        }
+      }
+    } catch (err: any) {
+      setError(err.message);
+      alert(err.message);
     }
   };
-  const handleGoogleSignIn = async () => {
-    const userCredential = await signInWithPopup(auth, provider);
-    console.log(userCredential.user);
-  };
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
@@ -75,6 +108,19 @@ export function LoginForm({
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="role">Login as</Label>
+                <select
+                  id="role"
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  className="p-2 border rounded"
+                  required
+                >
+                  <option value="student">Student</option>
+                  <option value="teacher">Teacher</option>
+                </select>
               </div>
               <Button type="submit" className="w-full">
                 Login
