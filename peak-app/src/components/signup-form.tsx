@@ -12,42 +12,40 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { auth, provider } from "@/firebase";
-import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-export function LoginForm({
+export function SignUpForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const userCredential = await signInWithEmailAndPassword(
+      const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
         password
       );
-      router.push("/");
+
+      router.push("/login");
       console.log(userCredential);
     } catch (error) {
-      alert("Invalid email or password");
       console.error(error);
     }
   };
-  const handleGoogleSignIn = async () => {
-    const userCredential = await signInWithPopup(auth, provider);
-    console.log(userCredential.user);
-  };
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">Login</CardTitle>
+          <CardTitle className="text-2xl">Sign Up</CardTitle>
           <CardDescription>
             Enter your email below to login to your account
           </CardDescription>
@@ -77,13 +75,13 @@ export function LoginForm({
                 />
               </div>
               <Button type="submit" className="w-full">
-                Login
+                Sign Up
               </Button>
             </div>
             <div className="mt-4 text-center text-sm">
-              Don&apos;t have an account?{" "}
-              <Link href="/signup" className="underline underline-offset-4">
-                Sign up
+              Have have an account?{" "}
+              <Link href="/login" className="underline underline-offset-4">
+                Login
               </Link>
             </div>
           </form>

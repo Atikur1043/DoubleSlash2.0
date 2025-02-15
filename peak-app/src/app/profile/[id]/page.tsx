@@ -1,11 +1,11 @@
-"use client"
+"use client";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/firebase";
 
 export default function StudentPage() {
-  const { id } = useParams(); // Get dynamic ID from URL
+  const { id } = useParams();
   const [student, setStudent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +19,6 @@ export default function StudentPage() {
         const studentSnap = await getDoc(studentRef);
 
         if (studentSnap.exists()) {
-
           setStudent(studentSnap.data());
           console.log(student);
         } else {
