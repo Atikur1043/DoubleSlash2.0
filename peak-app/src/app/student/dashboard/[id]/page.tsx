@@ -10,6 +10,7 @@ import {
   getDocs,
   doc,
   getDoc,
+  updateDoc,
 } from "firebase/firestore";
 import { useParams } from "next/navigation";
 import Link from "next/link"; // Import the Link component
@@ -17,15 +18,7 @@ import { signOut } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { auth, db } from "@/firebase";
 import { useRouter } from "next/navigation";
-
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-
 import { Input } from "@/components/ui/input";
-import { runTransaction } from "firebase/firestore";
 
 export default function StudentDashboard() {
   const { id: studentId } = useParams(); // Use `studentId` from URL params
@@ -34,6 +27,8 @@ export default function StudentDashboard() {
   const [nonEvaluatedSets, setNonEvaluatedSets] = useState([]);
   const [pendingSets, setPendingSets] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [newTeacherEmail, setNewTeacherEmail] = useState(""); // State for new teacher email
+  const [error, setError] = useState<string | null>(null); // State for error messages
 
   const router = useRouter();
 
@@ -105,6 +100,44 @@ export default function StudentDashboard() {
     fetchData();
   }, [studentId, teacherEmail]);
 
+  // Function to add a teacher's email to the student's document
+  const addTeacherEmail = async () => {
+    if (!newTeacherEmail) {
+      setError("Please enter a valid email.");
+      return;
+    }
+
+    try {
+      const studentDocRef = doc(db, "students", studentId);
+      const studentDocSnap = await getDoc(studentDocRef);
+
+      if (studentDocSnap.exists()) {
+        const studentData = studentDocSnap.data();
+        const teachers = studentData.teachers || []; // Get existing teachers array
+
+        // Check if the teacher's email already exists
+        if (teachers.includes(newTeacherEmail)) {
+          setError("This teacher is already added.");
+          return;
+        }
+
+        // Add the new teacher's email to the array
+        await updateDoc(studentDocRef, {
+          teachers: [...teachers, newTeacherEmail],
+        });
+
+        setNewTeacherEmail(""); // Clear the input field
+        setError(null); // Clear any previous error
+        alert("Teacher added successfully!");
+      } else {
+        setError("Student not found.");
+      }
+    } catch (error) {
+      console.error("Error adding teacher:", error);
+      setError("Failed to add teacher. Please try again.");
+    }
+  };
+
   if (loading) {
     return <div className="text-center mt-8">Loading...</div>;
   }
@@ -119,6 +152,23 @@ export default function StudentDashboard() {
       >
         Logout
       </Button>
+
+      {/* Add Teacher Email Section */}
+      <div className="w-full max-w-3xl">
+        <h1 className="text-2xl font-bold text-gray-700 mb-6">Add Teacher</h1>
+        <div className="flex gap-2">
+          <Input
+            type="email"
+            placeholder="Enter teacher's email"
+            value={newTeacherEmail}
+            onChange={(e) => setNewTeacherEmail(e.target.value)}
+          />
+          <Button onClick={addTeacherEmail}>Add Teacher</Button>
+        </div>
+        {error && (
+          <p className="text-red-500 text-sm mt-2">{error}</p>
+        )}
+      </div>
 
       <div className="w-full max-w-3xl">
         <h1 className="text-2xl font-bold text-gray-700 mb-6">Pending Tests</h1>
