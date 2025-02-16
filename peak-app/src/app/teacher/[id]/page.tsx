@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { doc, getDoc } from "firebase/firestore";
+import { addDoc, doc, getDoc } from "firebase/firestore";
 import { db, auth } from "@/firebase";
 import { signOut } from "firebase/auth";
 import { Button } from "@/components/ui/button";
@@ -34,41 +34,49 @@ export default function TeacherPage() {
   const [error, setError] = useState<string | null>(null);
 
   const handleEvaluate = async (qsId: string) => {
-    const answersQuery = query(
-      collection(db, "answer_sets"),
-      where("qset_id", "==", qsId)
-    );
     try {
       const questionSetRef = doc(db, "question_sets", qsId);
       const questionSetSnap = await getDoc(questionSetRef);
 
       const questionSet = questionSetSnap.data().questions;
 
+      const answersQuery = query(
+        collection(db, "answer_sets"),
+        where("qset_id", "==", qsId)
+      );
       const answersSnap = await getDocs(answersQuery);
+      console.log("Fetched answers:", answersSnap.docs);
+
       const answers = answersSnap.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
-      console.log("Fetched answers:", answers);
-      console.log("Fetched question set:", questionSet);
 
-      const packagedData = questionSet.map((q: any) => {
-        return {
-          qid: q.qid,
-          question: q.question,
-          teacher_answer: q.answer,
-          student_answer: answers[0].answers[q.qid] || "",
-        };
-      });
+      for (let i = 0; i < answers.length; i++) {
+        const packagedData = questionSet.map((q: any) => {
+          return {
+            qid: q.qid,
+            question: q.question,
+            teacher_answer: q.answer,
+            student_answer: answers[i].answers[q.qid] || "",
+          };
+        });
 
-      console.log("Packaged data:", packagedData);
-      const response = await axios.post("http://127.0.0.1:8000/evaluate", {
-        question_set: packagedData,
-      });
-      console.log("Evaluation response:", response.data);
-      await updateDoc(questionSetRef, { evaluated: true });
-      console.log("Question set marked as evaluated.");
-      // Process the answers as needed.
+        console.log("Packaged data:", packagedData);
+        const response = await axios.post("http://127.0.0.1:8000/evaluate", {
+          question_set: packagedData,
+        });
+
+        const evaluationData = response.data;
+        console.log("Evaluation response:", response.data);
+
+        addDoc(collection(db, "evaluation"), {
+          qset_id: qsId,
+          student_id: answers[i].student_id,
+          scores: evaluationData.evaluation,
+        });
+      }
+      // await updateDoc(questionSetRef, { evaluated: true });
     } catch (err) {
       console.error("Failed to fetch answers:", err);
     }
