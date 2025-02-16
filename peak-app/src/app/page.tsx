@@ -38,7 +38,7 @@ export default function Home() {
         const userInfo = await fetchUserInfo(user.email);
         if (userInfo) {
           if (userInfo.role === "teacher") {
-            router.push(`/teacher/${userInfo.id}`);
+            router.push(`/teacher/dashboard/${userInfo.id}`);
           } else if (userInfo.role === "student") {
             router.push(`/student/dashboard/${userInfo.id}`);
           }
