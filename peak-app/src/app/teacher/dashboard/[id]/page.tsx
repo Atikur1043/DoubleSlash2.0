@@ -45,7 +45,6 @@ export default function TeacherPage() {
         where("qset_id", "==", qsId)
       );
       const answersSnap = await getDocs(answersQuery);
-      console.log("Fetched answers:", answersSnap.docs);
 
       const answers = answersSnap.docs.map((doc) => ({
         id: doc.id,
@@ -62,13 +61,11 @@ export default function TeacherPage() {
           };
         });
 
-        console.log("Packaged data:", packagedData);
         const response = await axios.post("http://127.0.0.1:8000/evaluate", {
           question_set: packagedData,
         });
 
         const evaluationData = response.data;
-        console.log("Evaluation response:", response.data);
 
         addDoc(collection(db, "evaluation"), {
           qset_id: qsId,
@@ -76,13 +73,12 @@ export default function TeacherPage() {
           scores: evaluationData.evaluation,
         });
       }
-      // await updateDoc(questionSetRef, { evaluated: true });
+      await updateDoc(questionSetRef, { evaluated: true });
     } catch (err) {
       console.error("Failed to fetch answers:", err);
     }
   };
 
-  // Fetch teacher data
   useEffect(() => {
     const fetchTeacher = async () => {
       if (!id) return;
@@ -164,13 +160,16 @@ export default function TeacherPage() {
                   {qs.description || "No description available."}
                 </CardDescription>
               </CardContent>
-              <CardFooter>
+              <CardFooter className="flex justify-between">
                 <Button
                   onClick={() => handleEvaluate(qs.id)}
                   disabled={qs.evaluated ? true : false}
                 >
                   Evaluate
                 </Button>
+                <Link href={`/teacher/seepaper/${qs.id}`}>
+                  <Button>View</Button>
+                </Link>
               </CardFooter>
             </Card>
           ))
